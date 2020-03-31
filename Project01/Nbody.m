@@ -10,7 +10,7 @@ rot_frame = [1,2];
 maxNumPoints = 1e6; % max: 1e6
 
 % load n-body case
-case_select = 3;
+case_select = 6;
 sub_case = 11;
 nbody_test_cases;
 
