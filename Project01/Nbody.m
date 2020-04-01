@@ -115,8 +115,8 @@ cmap = hsv(size(r0,2));
 % ==================== Animate in Global Frame ====================
 
 % set up animated display
-figure(1)
-title('Global Frame')
+f = figure(1);
+title('Global Frame', 'fontsize', 16, 'interpreter' , 'latex')
 
 for i = 1:size(r0,2)
     anim(i) = animatedline(gca, 'Color', cmap(i,:), 'LineWidth', 1.5, ...
@@ -126,8 +126,6 @@ for i = 1:size(r0,2)
         'Color', cmap(i,:));
 end
 
-pbaspect([1,1,1])
-axis equal
 [lim_x,lim_y,lim_z] = init_view(r_hist);
 
 for j = 1:drawsize:num_steps-drawsize+1
@@ -144,13 +142,18 @@ for j = 1:drawsize:num_steps-drawsize+1
     drawnow
 end
 
+legend(anim,lgd,...
+       'fontsize', 16, 'interpreter' , 'latex', 'Location', 'Best')
+
+fig_prettify(f)
+
 
 % ==================== Animate in Particle Frame ====================
 
 % change reference frame and animate
 % ref_frame = 2; % this is now define at the top of the script
-figure(2);
-title([lgd(ref_frame) ' Frame'])
+f = figure(2);
+title([lgd(ref_frame) ' Frame'], 'fontsize', 16, 'interpreter' , 'latex')
 
 % set up animated display
 for i = 1:size(r0,2)
@@ -166,8 +169,6 @@ for i = 1:num_steps
     r_hist_frame(:,:,i) = r_hist_frame(:,:,i) - r_hist_frame(:,ref_frame,i);
 end
 
-pbaspect([1,1,1])
-axis equal
 [lim_x,lim_y,lim_z] = init_view(r_hist_frame);
 
 for j = 1:drawsize:num_steps-drawsize+1
@@ -184,12 +185,17 @@ for j = 1:drawsize:num_steps-drawsize+1
     drawnow
 end
 
+legend(anim_part,lgd,...
+       'fontsize', 16, 'interpreter' , 'latex', 'Location', 'Best')
+
+fig_prettify(f)
+
 
 % ==================== Animate in Barycenter Frame ====================
 
 % change reference frame and animate
-figure(3);
-title('Barycenter Frame')
+f = figure(3);
+title('Barycenter Frame', 'fontsize', 16, 'interpreter' , 'latex')
 
 % set up animated display
 for i = 1:size(r0,2)
@@ -210,8 +216,6 @@ for i = 1:num_steps
     r_hist_bary(:,:,i) = r_hist_bary(:,:,i) - barycenter;
 end
 
-pbaspect([1,1,1])
-axis equal
 [lim_x,lim_y,lim_z] = init_view(r_hist_bary);
 
 for j = 1:drawsize:num_steps-drawsize+1
@@ -228,14 +232,20 @@ for j = 1:drawsize:num_steps-drawsize+1
     drawnow
 end
 
+legend(anim_bary,lgd,...
+       'fontsize', 16, 'interpreter' , 'latex', 'Location', 'Best')
+
+fig_prettify(f)
+
 disp(['Barycenter Error:' num2str(norm(barycenter-predicted_barycenter))])
 
 
 % ==================== Animate in Rotating Frame ====================
 
 % change reference frame and animate
-figure(4);
-title(['Rotating Frame of ' lgd{rot_frame(1)} ' and ' lgd{rot_frame(2)}])
+f = figure(4);
+title(['Rotating Frame of ' lgd{rot_frame(1)} ' and ' lgd{rot_frame(2)}]...
+       , 'fontsize', 16, 'interpreter' , 'latex')
 
 % set up animated display
 for i = 1:size(r0,2)
@@ -258,8 +268,6 @@ for i = 1:num_steps
     end
 end
 
-pbaspect([1,1,1])
-axis equal
 [lim_x,lim_y,lim_z] = init_view(r_hist_rot);
 
 for j = 1:drawsize:num_steps-drawsize+1
@@ -276,24 +284,13 @@ for j = 1:drawsize:num_steps-drawsize+1
     drawnow
 end
 
+legend(anim_rot,lgd,...
+       'fontsize', 16, 'interpreter' , 'latex', 'Location', 'Best')
+
+fig_prettify(f)
 
 
 %% Function Definitions
-
-function a = f(r,m,G)
-
-N = size(r,2);
-a = zeros(size(r));
-
-for i = 1:N
-    for j = 1:N
-        if i ~= j
-        a(:,i) = a(:,i) + G*m(j)*(r(:,j)-r(:,i)) / norm(r(:,j)-r(:,i))^3;
-        end
-    end
-end
-
-end
 
 function rv_dot = ff(rv,m,G)
 
@@ -326,6 +323,13 @@ function [lim_x,lim_y,lim_z] = init_view(trajectory)
     if (lim_z(1) == lim_z(2)) 
         lim_z = [-1,1]; end
     
+    axis equal
+    grid(gca,'minor')
+    grid on
+    set( gca, 'Color', [1 1 1] )
+    set( gca, 'fontsize', 16, 'ticklabelinterpreter', 'latex' )
+    pbaspect([1,1,1])
+    
     update_view(lim_x,lim_y,lim_z);
 
 end
@@ -343,5 +347,17 @@ function update_view(lim_x,lim_y,lim_z)
     xlim(lim_x)
     ylim(lim_y)
     zlim(lim_z)
+
+end
+
+function fig_prettify(f)
+
+    set(f, 'PaperPositionMode', 'manual')
+    set(f, 'Color', [1 1 1])
+    set(f, 'PaperUnits', 'centimeters')
+    set(f, 'PaperSize', [30 30])
+    set(f, 'Units', 'centimeters' )
+    set(f, 'Position', [0 0 30 30])
+    set(f, 'PaperPosition', [0 0 30 30])
 
 end

@@ -13,7 +13,7 @@ close all hidden
 clear;clc
 
 % load n-body case
-case_select = 6;
+case_select = 19;
 sub_case = 11;
 nbody_test_cases;
 
@@ -39,6 +39,9 @@ end
 
 errs = zeros(size(rv0,2),length(dtvect)-1);
 
+subplot_rows = floor(sqrt(size(rv0,2)));
+subplot_cols = ceil((size(rv0,2))/subplot_rows);
+
 for j = 1:length(dtvect)-1
     
     for k = 1:size(rv0,2)
@@ -50,10 +53,38 @@ for j = 1:length(dtvect)-1
     
 end
 
+f = figure(1);
+
 for k = 1:size(rv0,2)
     
-    figure(k)
-    loglog(dtvect(1:end-1),errs(k,:))
+    loglog(dtvect(1:end-1),errs(k,:), ...
+           '.-', 'markersize', 25, 'linewidth', 2)
+    hold on
     
 end
+
+hold off
+
+title(['Error Convergence of the ' num2str(size(rv0,2)) '-Body System'], ...
+      'fontsize', 16, 'interpreter' , 'latex')
+xlabel('$\Delta t$', 'fontsize', 16, 'interpreter' , 'latex')
+ylabel('Normalized Error', 'fontsize', 16, 'interpreter' , 'latex')
+legend(lgd, 'fontsize', 16, 'interpreter' , 'latex', 'Location', 'Best')
+
+grid(gca,'minor')
+grid on
+set( gca, 'Color', [1 1 1] )
+set( gca, 'fontsize', 16, 'ticklabelinterpreter', 'latex' )
+pbaspect([1,1,1])
+
+set(f, 'PaperPositionMode', 'manual')
+set(f, 'Color', [1 1 1])
+set(f, 'PaperUnits', 'centimeters')
+set(f, 'PaperSize', [30 30])
+set(f, 'Units', 'centimeters' )
+set(f, 'Position', [0 0 30 30])
+set(f, 'PaperPosition', [0 0 30 30])
+
+svnm = strcat('.\Figures\case', num2str(case_select), '_error');
+print( '-dpng', svnm, '-r200' )
 
