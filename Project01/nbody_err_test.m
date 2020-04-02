@@ -13,7 +13,7 @@ close all hidden
 clear;clc
 
 % load n-body case
-case_select = 19;
+case_select = 17;
 sub_case = 11;
 nbody_test_cases;
 
@@ -41,13 +41,14 @@ errs = zeros(size(rv0,2),length(dtvect)-1);
 
 subplot_rows = floor(sqrt(size(rv0,2)));
 subplot_cols = ceil((size(rv0,2))/subplot_rows);
+length_baseline = mean(vecnorm(r0,2,1));
 
 for j = 1:length(dtvect)-1
     
     for k = 1:size(rv0,2)
         
         errs(k,j) = norm(rv_end(1:3,k,j)-rv_end(1:3,k,end)) / ...
-                    norm(rv_end(1:3,k,end));
+                    length_baseline;
     
     end
     
