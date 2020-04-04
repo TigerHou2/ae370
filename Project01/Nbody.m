@@ -9,8 +9,17 @@ ref_frame = 1;
 rot_frame = [1,2];
 maxNumPoints = 1e6; % max: 1e6
 
+% choose animation frames
+do_glob = false;
+do_part = false;
+do_bary = true;
+do_rotn = false;
+
+% save figures?
+save_fig = true;
+
 % load n-body case
-case_select = 6;
+case_select = 11;
 sub_case = 11;
 nbody_test_cases;
 
@@ -114,6 +123,8 @@ cmap = hsv(size(r0,2));
 
 % ==================== Animate in Global Frame ====================
 
+if do_glob
+
 % set up animated display
 f = figure(1);
 title('Global Frame', 'fontsize', 16, 'interpreter' , 'latex')
@@ -147,8 +158,12 @@ legend(anim,lgd,...
 
 fig_prettify(f)
 
+end
+
 
 % ==================== Animate in Particle Frame ====================
+
+if do_part
 
 % change reference frame and animate
 % ref_frame = 2; % this is now define at the top of the script
@@ -190,8 +205,12 @@ legend(anim_part,lgd,...
 
 fig_prettify(f)
 
+end
+
 
 % ==================== Animate in Barycenter Frame ====================
+
+if do_bary
 
 % change reference frame and animate
 f = figure(3);
@@ -237,10 +256,17 @@ legend(anim_bary,lgd,...
 
 fig_prettify(f)
 
+svnm = strcat('.\Barycenters\case', num2str(case_select), '_bary');
+print( '-dpng', svnm, '-r200' )
+
 disp(['Barycenter Error:' num2str(norm(barycenter-predicted_barycenter))])
+
+end
 
 
 % ==================== Animate in Rotating Frame ====================
+
+if do_rotn
 
 % change reference frame and animate
 f = figure(4);
@@ -288,6 +314,8 @@ legend(anim_rot,lgd,...
        'fontsize', 16, 'interpreter' , 'latex', 'Location', 'Best')
 
 fig_prettify(f)
+
+end
 
 
 %% Function Definitions

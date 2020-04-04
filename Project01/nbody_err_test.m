@@ -13,7 +13,7 @@ close all hidden
 clear;clc
 
 % load n-body case
-case_select = 17;
+case_select = 15;
 sub_case = 11;
 nbody_test_cases;
 
@@ -33,6 +33,9 @@ for j = 1:length(dtvect)
     rv_end(:,:,j) = rk4(@gravity,rv0,T,dtvect(j),m,G);
     
 end
+
+filename = strcat('Err_Data\Case_',num2str(case_select));
+save(filename, 'rv_end', 'dtvect', 'case_select', 'rv0');
 
 
 %% Error Plots
@@ -59,23 +62,23 @@ f = figure(1);
 for k = 1:size(rv0,2)
     
     loglog(dtvect(1:end-1),errs(k,:), ...
-           '.-', 'markersize', 25, 'linewidth', 2)
+           '.-', 'markersize', 32, 'linewidth', 2)
     hold on
     
 end
 
 hold off
 
-title(['Error Convergence of the ' num2str(size(rv0,2)) '-Body System'], ...
-      'fontsize', 16, 'interpreter' , 'latex')
-xlabel('$\Delta t$', 'fontsize', 16, 'interpreter' , 'latex')
-ylabel('Normalized Error', 'fontsize', 16, 'interpreter' , 'latex')
-legend(lgd, 'fontsize', 16, 'interpreter' , 'latex', 'Location', 'Best')
+% title(['Error Convergence of the ' num2str(size(rv0,2)) '-Body System'], ...
+%       'fontsize', 40, 'interpreter' , 'latex')
+xlabel('$\Delta t$', 'fontsize', 50, 'interpreter' , 'latex')
+ylabel('Normalized Error', 'fontsize', 50, 'interpreter' , 'latex')
+legend(lgd, 'fontsize', 36, 'interpreter' , 'latex', 'Location', 'Southeast')
 
 grid(gca,'minor')
 grid on
 set( gca, 'Color', [1 1 1] )
-set( gca, 'fontsize', 16, 'ticklabelinterpreter', 'latex' )
+set( gca, 'fontsize', 50, 'ticklabelinterpreter', 'latex' )
 pbaspect([1,1,1])
 
 set(f, 'PaperPositionMode', 'manual')
@@ -85,6 +88,20 @@ set(f, 'PaperSize', [30 30])
 set(f, 'Units', 'centimeters' )
 set(f, 'Position', [0 0 30 30])
 set(f, 'PaperPosition', [0 0 30 30])
+
+lim_y = ylim;
+lb = floor(log10(lim_y(1)));
+ub =  ceil(log10(lim_y(2)));
+set( gca, 'YTick', ...
+     logspace(lb,ub,ub-lb+1));
+% set( gca, 'YTick', ...
+%      logspace(lb,ub-1,(ub-lb+1)/2));
+ 
+lim_x = xlim;
+lb = floor(log10(lim_x(1)));
+ub =  ceil(log10(lim_x(2)));
+set( gca, 'XTick', ...
+     logspace(lb,ub,ub-lb+1));
 
 svnm = strcat('.\Figures\case', num2str(case_select), '_error');
 print( '-dpng', svnm, '-r200' )
