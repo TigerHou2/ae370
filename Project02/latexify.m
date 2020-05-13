@@ -1,16 +1,20 @@
-function latexify(w,h)
+function latexify(w,h,fontSize)
 %LATEXIFY Summary of this function goes here
 %   Detailed explanation goes here
 
-if nargin ~= 2
+if nargin < 2
     w = 18;
     h = 18;
 end
+if ~exist('fontSize','var')
+    fontSize = 16;
+end
 
-set(findall(gcf,'-property','FontSize'),'FontSize',16)
-set(findall(gcf,'-property','ticklabelinterpreter'),...
-                            'ticklabelinterpreter','latex')
-set(findall(gcf,'-property','interpreter'),'interpreter','latex')
+set(groot,'defaulttextinterpreter','latex');  
+set(groot,'defaultAxesTickLabelInterpreter','latex');
+set(groot,'defaultLegendInterpreter','latex');
+
+set(findall(gcf,'-property','FontSize'),'FontSize',fontSize)
 
 set( gca, 'Color', [1 1 1] )
 
