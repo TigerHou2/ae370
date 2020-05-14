@@ -13,27 +13,43 @@
 close all
 clear;clc
 
-%solve the wave eqn over 0 < x < 1
-%with BCs u(10,t) = u(20,t) = 0
-%and IC u(x,0) = exp(-10*x);
-
-saveGIF = false;
+saveGIF = true;
 play = true;
 
+num_pics = 4;
+saveFigs = true;
+
+hideWallEnergy = false;
+
+if saveFigs
+    fileName = ...
+    input(['Please enter the prefix for your file names:' newline],'s');
+end
+
 % define left/right boundaries
-a = 0;     % left boundary
-b = 3*pi;  % right boundary
+a = 0;  % left boundary
+b = 8;  % right boundary
 ln = b-a;
 
-% wave speed as a function of position
-% --- switching function
-c = @(x) (x< pi/2) * 1 + ...
-         (x>=pi/2) * 1;
-% --- sigmoid function
-c = @(x) (3*pi/2-atan(15*(x-pi/2)))/pi;
+% common starting point for wall and transition point
+lc = 3.0;
+
+% define wave speed for wall cases
+% tc  = 1.5; % thickness
+% spA = 1;  % speed of sound not in wall
+% spW = 10;  % speed of sound in wall
+% c = @(x) (x< lc) * spA + ...
+%          (x>=lc & x < lc+tc) * spW + ...
+%          (x>=lc+tc) * spA;
+
+% define wave speed for transition cases
+spL = 1.0; % speed of sound on the left
+spR = 3.0; % speed of sound on the right
+sharpness = 100; % larger value = sharper transition ; use [5, 15, 100]
+c = @(x) ( (spL+spR)/2 - (spL-spR)/2*atan(sharpness*(x-lc))/pi*2 );
 
 % initial conditions
-u0 = @(x) zeros(size(x));
+w0 = @(x) zeros(size(x));
 v0 = @(x) zeros(size(x));
 
 % boundary conditions
@@ -43,8 +59,10 @@ g = @(t) 0;
 % # of n points to use
 nvect = [50, 100, 200, 500, 1000];
 
-T = 8; % final time
-dtvect = (b-a)./nvect/5; % dt must match dx in order of magnitude
+% final time
+T = 8;
+% dt must match dx in order of magnitude
+dtvect = 0.9 * (b-a)./nvect/max(c(linspace(a,b,10000)));
 
 % initialize u vect
 uvect = cell(size(nvect));
@@ -87,10 +105,10 @@ for j = 1 : length( nvect )
     % Iterate through time
     
         % build time vector
-        tvect = 2*dt:dt:T;
+        tvect = 0:dt:T-dt;
         
         % second order states initialization
-        um1 = u0(xj(2:end-1));
+        um1 = w0(xj(2:end-1));
         uu  = 0.5 * A * um1 + dt * v0(xj(2:end-1)) + 0.5 * h(0);
         uuvect = repmat(uu,1,length(tvect));
         uuvect(:,1) = um1;
@@ -142,17 +160,70 @@ loglog( ln./nvect(1:end-1), cc.*(ln./nvect(1:end-1)).^2, ...
         'k--', 'linewidth', 2 )
 hold on
 
-loglog( ln./nvect(1:end-1), err , 'b.', 'markersize', 26 )
+loglog( ln./nvect(1:end-1), err , '.', 'markersize', 32, 'Color', [0.9 0.54 0.72])
 legend('$O(\Delta x^2)$', 'Error', 'Location', 'Best');
 hold off
 
-grid(gca,'minor')
-grid on
+xlabel('$\Delta x$')
+ylabel('Error')
+
+setgrid(0.3,0.9)
+latexify(19,19,28)
+
+if saveFigs
+    svnm = ['figures/' fileName '_error'];
+    print( '-dpng', svnm, '-r200' )
+end
+
+
+%% plot energy
+
+figure(2)
+
+% extract the highest resolution data
+waveData = uvect{end};
+% create x-axis, mapped to highest resolution data
+xx = linspace(a,b,size(waveData,1))';
+
+if hideWallEnergy
+    % cut both waveData and xx to contain only points before boundary
+          xx(ceil(size(waveData,1)*(lc-a)/ln):end,:) = [];
+    waveData(ceil(size(waveData,1)*(lc-a)/ln):end,:) = [];
+end
+
+dx = ( b - a ) / nvect(end);
+dt = dtvect(end);
+tvect = 0:dt:T-2*dt;
+
+indices = 1:size(waveData,2)-1;
+E = nan(size(indices));
+for i = 1:length(indices)
+    E(i) = checkEnergy(indices(i),waveData,dx,dt,c,xx);
+end
+plot(tvect,E,'LineWidth',3,'Color',[0.9 0.54 0.72])
+
+xlabel('Time')
+ylabel('Energy')
+setgrid(0.3,0.9)
+latexify(19,10,28)
+expand(0,0.04)
+
+if hideWallEnergy
+    fileExt = '_energy_prewall';
+else
+    fileExt = '_energy';
+end
+if saveFigs
+    svnm = ['figures/' fileName fileExt];
+    print( '-dpng', svnm, '-r200' )
+end
 
 
 %% plot waves
 
-figure(2)
+if play || saveGIF
+    
+figure(3)
 
 % extract the highest resolution data
 waveData = uvect{end};
@@ -191,59 +262,58 @@ annotation('rectangle',...
 
 % animate and make gif
 axis equal tight manual % this ensures that getframe() returns a consistent size
-filename = 'test.gif';
+filename = ['figures/' fileName '.gif'];
 lim_x = [a;b];
 lim_y = [min(waveData(:));max(waveData(:))];
 lim_z = [0;1];
 update_view(lim_x,lim_y,lim_z);
 playtime = T;
-pausetime = playtime/size(waveData,2);
 
 % constrain GIF to 60FPS
 frames = playtime * 60;
 shutter = ceil(size(waveData,2)/frames);
 
-if play
-    for i = 1:size(waveData,2)
+for i = 1:size(waveData,2)
 
-        % update plot
-        if mod(i-1,shutter)==0
-            set(wave,'XData',xx,'YData',waveData(:,i))
-            pause(pausetime) % pause for proper MATLAB display speed
-        end
-        
-        % save GIF
-        if saveGIF && mod(i-1,shutter)==0
+    % update plot
+    if mod(i-1,shutter)==0
+        set(wave,'XData',xx,'YData',waveData(:,i))
+        pause(1/60) % pause for proper MATLAB display speed
+    end
 
-            % capture the plot as an image 
-            frame = getframe;
-            im = frame2im(frame);
-            [imind,cm] = rgb2ind(im,256);
+    % save GIF
+    if saveGIF && mod(i-1,shutter)==0
 
-            % write to the GIF file 
-            if i == 1
-              imwrite(imind,cm,filename,...
-                        'gif','Loopcount',inf,'DelayTime',1/60);
-            else
-              imwrite(imind,cm,filename,...
-                        'gif','WriteMode','append','DelayTime',1/60);
-            end
+        % capture the plot as an image 
+        frame = getframe;
+        im = frame2im(frame);
+        [imind,cm] = rgb2ind(im,256);
 
+        % write to the GIF file 
+        if i == 1
+          imwrite(imind,cm,filename,...
+                    'gif','Loopcount',inf,'DelayTime',1/60);
+        else
+          imwrite(imind,cm,filename,...
+                    'gif','WriteMode','append','DelayTime',1/60);
         end
 
     end
+
 end
     
 hold off
+    
+end
+
 
 %% save screenshots
 
-sc = figure(3);
+sc = figure(4);
 
 % take a fixed number of screenshots in equispaced time
-num_pics = 4;
-shutter = floor(size(waveData,2)/(num_pics-1));
-idx = 1;
+shutter = floor(size(waveData,2)/num_pics);
+idx = shutter;
 
 % extract the highest resolution data
 waveData = uvect{end};
@@ -256,8 +326,13 @@ yy = linspace(min(waveData(:)),max(waveData(:)),100);
 [X,Y] = meshgrid(xx,yy);
 Z = c(X);
 
+% set axis limits
+lim_x = [a;b];
+lim_y = [min(waveData(:));max(waveData(:))];
+lim_z = [0;1];
+
 % make figure pretty
-latexify(19,16)
+latexify(19,12)
 
 for i = 1:num_pics
 
@@ -267,19 +342,10 @@ for i = 1:num_pics
     pp = plot(xx,waveData(:,idx),'k','LineWidth',0.75);
     idx = idx + shutter;
     hold on
+    update_view(lim_x,lim_y,lim_z);
     
-    % plot colorbar
-    bg_bar = colorbar;
-    bg_bar.TickLabelInterpreter = 'latex';
-    bg_bar.Label.String = 'Speed';
-    bg_bar.Label.Interpreter = 'latex';
-    
-    % mask colorbar to match transparency
-    annotation('rectangle',...
-        bg_bar.Position,...
-        'FaceAlpha',bgAlpha,...
-        'EdgeColor',[1 1 1],...
-        'FaceColor',[1 1 1]);
+    % expand to window boundary
+    expand(0.05,0.15)
     
     % plot background
     cmap = spring(100);
@@ -299,6 +365,11 @@ for i = 1:num_pics
     % move wave to top of display stack
     uistack(pp,'top')
     
+    % annotate time
+    posx = lim_x(1) + 0.91 * (lim_x(2) - lim_x(1));
+    posy = lim_y(1) + 0.85 * (lim_y(2) - lim_y(1));
+    text(posx,posy,['t = ', num2str(T/num_pics*i)])
+    
 end
 
 hold on
@@ -307,7 +378,36 @@ handle.XLabel.Visible = 'on';
 handle.YLabel.Visible = 'on';
 xlabel('x')
 ylabel('u')
+expand(0.01,0.04,0.02,0.06)
+
+latexify(19,12,11)
+    
+% plot colorbar
+bg_bar = colorbar;
+caxis([min(c(xx))-0.01,max(c(xx))+0.01])
+bg_bar.TickLabelInterpreter = 'latex';
+bg_bar.Label.String = 'Speed';
+bg_bar.Label.Interpreter = 'latex';
+
+% mask colorbar to match transparency
+annotation('rectangle',...
+    bg_bar.Position,...
+    'FaceAlpha',bgAlpha,...
+    'EdgeColor',[1 1 1],...
+    'FaceColor',[1 1 1]);
+
 hold off
+
+if saveFigs
+    svnm = ['figures/' fileName '_snaps'];
+    print( '-dpng', svnm, '-r200' )
+end
+
+
+%% safety
+
+% if we run part of the code again, don't resave figures
+saveFigs = false;
 
 
 %% supporting functions
@@ -317,5 +417,17 @@ function update_view(lim_x,lim_y,lim_z)
     xlim(lim_x)
     ylim(lim_y)
     zlim(lim_z)
+
+end
+
+function E = checkEnergy(idx,waveData,dx,dt,c,xx)
+
+    dudx = (waveData(2:end,idx) - waveData(1:end-1,idx)) / dx;
+    dudt = (waveData(:,idx+1) - waveData(:,idx)) / dt;
+    
+    cc = c(xx).^2;
+    
+    E = trapz(xx,dudt.^2) ...
+      + trapz(xx(1:end-1),cc(1:end-1).*dudx.^2);
 
 end
