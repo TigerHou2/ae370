@@ -17,11 +17,14 @@ saveGIF = true;
 play = true;
 
 num_pics = 4;
-saveFigs = true;
+saveFigs = false;
 
 hideWallEnergy = false;
 
-if saveFigs
+if saveGIF
+    fileName = ...
+    input(['Please enter the prefix for your file name(s):' newline],'s');
+elseif saveFigs
     fileName = ...
     input(['Please enter the prefix for your file names:' newline],'s');
 end
@@ -35,17 +38,17 @@ ln = b-a;
 lc = 3.0;
 
 % define wave speed for wall cases
-% tc  = 1.5; % thickness
+% tc  = 0.1; % thickness
 % spA = 1;  % speed of sound not in wall
-% spW = 10;  % speed of sound in wall
+% spW = 1;  % speed of sound in wall
 % c = @(x) (x< lc) * spA + ...
 %          (x>=lc & x < lc+tc) * spW + ...
 %          (x>=lc+tc) * spA;
 
 % define wave speed for transition cases
-spL = 1.0; % speed of sound on the left
-spR = 3.0; % speed of sound on the right
-sharpness = 100; % larger value = sharper transition ; use [5, 15, 100]
+spL = 3.0; % speed of sound on the left
+spR = 1.0; % speed of sound on the right
+sharpness = 1; % larger value = sharper transition ; use [5, 15, 100]
 c = @(x) ( (spL+spR)/2 - (spL-spR)/2*atan(sharpness*(x-lc))/pi*2 );
 
 % initial conditions
@@ -57,7 +60,7 @@ f = @(t) (-cos(t*2*pi)+1)*(pi/2-atan(10000*(t-1)))/pi;
 g = @(t) 0;
 
 % # of n points to use
-nvect = [50, 100, 200, 500, 1000];
+nvect = [50, 500];
 
 % final time
 T = 8;
@@ -223,7 +226,7 @@ end
 
 if play || saveGIF
     
-figure(3)
+ff = figure(3);
 
 % extract the highest resolution data
 waveData = uvect{end};
@@ -261,41 +264,50 @@ annotation('rectangle',...
     'FaceColor',[1 1 1]);
 
 % animate and make gif
-axis equal tight manual % this ensures that getframe() returns a consistent size
-filename = ['figures/' fileName '.gif'];
+axis tight manual % this ensures that getframe() returns a consistent size
+set(gcf,'Renderer','zbuffer')
+filename = ['gifs/' fileName '.gif'];
 lim_x = [a;b];
 lim_y = [min(waveData(:));max(waveData(:))];
 lim_z = [0;1];
 update_view(lim_x,lim_y,lim_z);
 playtime = T;
 
-% constrain GIF to 60FPS
-frames = playtime * 60;
+% annotate time
+posx = lim_x(1) + 0.07 * (lim_x(2) - lim_x(1));
+posy = lim_y(1) + 0.90 * (lim_y(2) - lim_y(1));
+txt = text(posx,posy,['t = ', '0.00']);
+
+% constrain GIF to a fixed FPS
+fps = 60;
+frames = playtime * fps;
 shutter = ceil(size(waveData,2)/frames);
+latexify(19,15,20)
 
 for i = 1:size(waveData,2)
 
     % update plot
     if mod(i-1,shutter)==0
         set(wave,'XData',xx,'YData',waveData(:,i))
-        pause(1/60) % pause for proper MATLAB display speed
+        set(txt, 'String',['t = ', num2str(i*dtvect(end),'%2.2f')])
+        pause(1/fps) % pause for proper MATLAB display speed
     end
 
     % save GIF
     if saveGIF && mod(i-1,shutter)==0
 
         % capture the plot as an image 
-        frame = getframe;
+        frame = getframe(ff);
         im = frame2im(frame);
         [imind,cm] = rgb2ind(im,256);
 
         % write to the GIF file 
         if i == 1
           imwrite(imind,cm,filename,...
-                    'gif','Loopcount',inf,'DelayTime',1/60);
+                    'gif','Loopcount',inf,'DelayTime',1/fps);
         else
           imwrite(imind,cm,filename,...
-                    'gif','WriteMode','append','DelayTime',1/60);
+                    'gif','WriteMode','append','DelayTime',1/fps);
         end
 
     end
